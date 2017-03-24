@@ -12,7 +12,8 @@ int main()
 	//double a = get_number("123",i);
 	//cout << a << " " << i << endl;
 	exp_tree a,b;
-	string s = "x^3";
+	map<string, double> var();
+	string s = "x/(2*x+1)";
 	build_tree(s,a);
 	//a.t_show();
 	a.simplify();

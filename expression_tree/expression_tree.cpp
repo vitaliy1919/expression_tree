@@ -95,31 +95,21 @@ Node * _diff(Node * rt,const string& var_n)
 	}
 	if (rt->data == "*")
 	{
-		Node *t1, *t2, *t3;
-		t1 = new Node(nullptr, nullptr, rt->type, "+");
-		t2 = new Node(_diff(rt->left, var_n), copy_tree(rt->right), Node::oper, "*");
-		t3 = new Node(copy_tree(rt->left), _diff(rt->right, var_n), Node::oper, "*");
-		t1->left = t2;
-		t1->right = t3;
+		Node* t1 = new_oper_node(
+			new_oper_node(_diff(rt->left, var_n), copy_tree(rt->right), "*"),
+			new_oper_node(copy_tree(rt->left), _diff(rt->right, var_n), "*"),
+			"+");
 		return t1;
 	}
 	if (rt->data == "/")
 	{
-		Node* t[7];
-		t[0] = new Node(nullptr, nullptr, Node::oper, "/");
-		t[1] = new Node(nullptr, nullptr, Node::oper, "^");
-		t[2] = copy_tree(rt->right);
-		t[3] = new Node(nullptr, nullptr, Node::constant, "", 2);
-		t[1]->left = t[2];
-		t[1]->right = t[3];
-		t[0]->right = t[1];
-		t[4] = new Node(nullptr, nullptr,  Node::oper, "-");
-		t[5] = new Node(_diff(rt->left, var_n), copy_tree(rt->right),  Node::oper, "*");
-		t[6] = new Node(copy_tree(rt->left), _diff(rt->right,var_n),  Node::oper, "*");
-		t[4]->left = t[5];
-		t[4]->right = t[6];
-		t[0]->left = t[4];
-		return t[0];
+		Node *t1 = new_oper_node(
+			new_oper_node(
+				new_oper_node(_diff(rt->left,var_n),copy_tree(rt->right),"*"), 
+				new_oper_node(copy_tree(rt->left),_diff(rt->right,var_n),"*"),"-"),
+			new_oper_node(copy_tree(rt->right),new_const_node(2),"^"),
+			"/");
+		return t1;
 	}
 	if (rt->data == "^")
 	{
@@ -127,11 +117,11 @@ Node * _diff(Node * rt,const string& var_n)
 		{
 
 			Node *t1 = new Node(copy_tree(rt->left),
-				new_node(nullptr,nullptr,Node::constant,"",rt->right->val-1),
+				new_const_node(rt->right->val-1),
 				Node::oper, "^");
 			Node* t2 = new Node(
-				new_node(nullptr,nullptr,Node::oper,"",rt->right->val),
-				t1,Node::constant,"*");
+				new_const_node(rt->right->val),
+				t1,Node::oper,"*");
 			Node *t3 = new Node(t2, _diff(rt->left, var_n), Node::oper, "*");
 			return t3;
 		}
@@ -143,6 +133,7 @@ Node * new_node(Node * l, Node * r, int t, const string & d, double v)
 	Node *temp = new Node(l, r, t, d, v);
 	return temp;
 }
+
 void exp_tree::show_tree(Node * r) const
 {
 	if (r)
@@ -388,21 +379,21 @@ void exp_tree::show() const
 	cout << s<<endl;
 }
 
-//exp_tree::exp_tree(const exp_tree & a)
-//{
-//	root = copy_tree(a.root);
-////	var = a.var;
-//}
-//
-//exp_tree& exp_tree::operator=(const exp_tree & a)
-//{
-//	if (&a == this)
-//		return *this;
-//	this->~exp_tree();
-//	root = copy_tree(a.root);
-//	//var = a.var;
-//	return *this;
-//}
+exp_tree::exp_tree(const exp_tree & a)
+{
+	root = copy_tree(a.root);
+//	var = a.var;
+}
+
+exp_tree& exp_tree::operator=(const exp_tree & a)
+{
+	if (&a == this)
+		return *this;
+	this->~exp_tree();
+	root = copy_tree(a.root);
+	//var = a.var;
+	return *this;
+}
 
 void exp_tree::diff(const string& var_n) 
 {
