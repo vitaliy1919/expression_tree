@@ -20,7 +20,11 @@ int compare(double a, double b)
 	}
 	return 0;
 }
-
+template <typename T>
+bool in(const T& a, const set<T>& s)
+{
+	return s.find(a) != s.end();
+}
 double get_number(const string& s,int& i)
 {
 	int st = i,len=s.length();
@@ -62,6 +66,83 @@ void delete_tree(Node * r)
 		delete r;
 	}
 }
+Node * copy_tree(Node * rt)
+{
+	if (rt)
+	{
+		Node* temp = new Node(copy_tree(rt->left), copy_tree(rt->right), rt->type, rt->data, rt->val);
+		return temp;
+	}
+	return nullptr;
+}
+Node * _diff(Node * rt,const string& var_n)
+{
+	if (!rt)
+		return nullptr;
+	if (!rt->right && !rt->left)
+	{
+		Node* temp;
+		if (rt->type==Node::var && rt->data==var_n)
+			temp = new Node(nullptr, nullptr, Node::constant, "",1);
+		else
+			temp= new Node(nullptr, nullptr, Node::constant, "", 0);
+		return temp;
+	}	
+	if (in(rt->data, { "+","-" }))
+	{
+		Node* temp = new Node(_diff(rt->left,var_n), _diff(rt->right,var_n),rt->type, rt->data);
+		return temp;
+	}
+	if (rt->data == "*")
+	{
+		Node *t1, *t2, *t3;
+		t1 = new Node(nullptr, nullptr, rt->type, "+");
+		t2 = new Node(_diff(rt->left, var_n), copy_tree(rt->right), Node::oper, "*");
+		t3 = new Node(copy_tree(rt->left), _diff(rt->right, var_n), Node::oper, "*");
+		t1->left = t2;
+		t1->right = t3;
+		return t1;
+	}
+	if (rt->data == "/")
+	{
+		Node* t[7];
+		t[0] = new Node(nullptr, nullptr, Node::oper, "/");
+		t[1] = new Node(nullptr, nullptr, Node::oper, "^");
+		t[2] = copy_tree(rt->right);
+		t[3] = new Node(nullptr, nullptr, Node::constant, "", 2);
+		t[1]->left = t[2];
+		t[1]->right = t[3];
+		t[0]->right = t[1];
+		t[4] = new Node(nullptr, nullptr,  Node::oper, "-");
+		t[5] = new Node(_diff(rt->left, var_n), copy_tree(rt->right),  Node::oper, "*");
+		t[6] = new Node(copy_tree(rt->left), _diff(rt->right,var_n),  Node::oper, "*");
+		t[4]->left = t[5];
+		t[4]->right = t[6];
+		t[0]->left = t[4];
+		return t[0];
+	}
+	if (rt->data == "^")
+	{
+		if (rt->right->type == Node::constant)
+		{
+
+			Node *t1 = new Node(copy_tree(rt->left),
+				new_node(nullptr,nullptr,Node::constant,"",rt->right->val-1),
+				Node::oper, "^");
+			Node* t2 = new Node(
+				new_node(nullptr,nullptr,Node::oper,"",rt->right->val),
+				t1,Node::constant,"*");
+			Node *t3 = new Node(t2, _diff(rt->left, var_n), Node::oper, "*");
+			return t3;
+		}
+	}
+	return nullptr;
+}
+Node * new_node(Node * l, Node * r, int t, const string & d, double v)
+{
+	Node *temp = new Node(l, r, t, d, v);
+	return temp;
+}
 void exp_tree::show_tree(Node * r) const
 {
 	if (r)
@@ -75,13 +156,11 @@ void exp_tree::show_tree(Node * r) const
 	}
 
 }
-template <typename T>
-bool in(const T& a, const set<T>& s)
-{
-	return s.find(a) != s.end();
-}
+
 bool exp_tree::_show(Node * r,string& s) const
 {
+	if (r == nullptr)
+		return false;
 	if (r->type == Node::oper)
 	{
 		bool s_par = in(r->data, { "*","/","^" });
@@ -223,7 +302,8 @@ double exp_tree::eval(Node * r) const
 		return r->val;
 	else if (r->type == Node::var)
 	{
-		return var.at(r->data);
+		return 0;
+		//return var.at(r->data);
 	}
 	return 0;
 }
@@ -234,9 +314,8 @@ void calc_single_oper(stack<string>& op, stack<Node*>& tr)
 	Node *l, *r;
 	r = tr.top(); tr.pop();
 	l = tr.top(); tr.pop();
-	Node *temp = new Node(l, r,nullptr, Node::oper, cur);
-	l->parent = temp;
-	r->parent = temp;
+	Node *temp = new Node(l, r,Node::oper, cur);
+
 	tr.push(temp);
 }
 void build_tree(const string & s,exp_tree& res)
@@ -266,7 +345,7 @@ void build_tree(const string & s,exp_tree& res)
 		else if (isdigit(s[i]))
 		{
 			double d = get_number(s, i);
-			temp = new Node(nullptr, nullptr,nullptr, Node::constant, "", d);
+			temp = new Node(nullptr, nullptr, Node::constant, "", d);
 			tree.push(temp);
 		}
 		else if (isalpha(s[i]))
@@ -274,8 +353,8 @@ void build_tree(const string & s,exp_tree& res)
 			string word = get_word(s, i);
 			if (i >= len || s[i] == ')' || is_oper(s[i]))
 			{
-				temp = new Node(nullptr, nullptr,nullptr, Node::var, word);
-				res.var.insert({ word,0 });
+				temp = new Node(nullptr, nullptr, Node::var, word);
+			//	res.var.insert({ word,0 });
 				tree.push(temp);
 			}
 		}
@@ -295,11 +374,11 @@ void exp_tree::t_show() const
 
 void exp_tree::set_var()
 {
-	for (auto it = var.begin(); it != var.end(); it++)
+	/*for (auto it = var.begin(); it != var.end(); it++)
 	{
 		cout << it->first << "=";
 		cin >> it->second;
-	}
+	}*/
 }
 
 void exp_tree::show() const
@@ -307,6 +386,29 @@ void exp_tree::show() const
 	string s;
 	_show(root,s);
 	cout << s<<endl;
+}
+
+//exp_tree::exp_tree(const exp_tree & a)
+//{
+//	root = copy_tree(a.root);
+////	var = a.var;
+//}
+//
+//exp_tree& exp_tree::operator=(const exp_tree & a)
+//{
+//	if (&a == this)
+//		return *this;
+//	this->~exp_tree();
+//	root = copy_tree(a.root);
+//	//var = a.var;
+//	return *this;
+//}
+
+void exp_tree::diff(const string& var_n) 
+{
+	Node *rt = _diff(root,var_n);
+	this->~exp_tree();
+	root = rt;
 }
 
 exp_tree::~exp_tree()
